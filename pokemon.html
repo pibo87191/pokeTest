@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body { background-color: #E2F4FC; min-height: 100vh; }
+        .rotom-navbar { background-color: #0F172A; border-bottom: 3px solid #FF5330; padding: 0.75rem 1.5rem; }
+        .navbar-logo-img { height: 40px; width: auto; object-fit: contain; }
+        .artwork-grid-box { min-height: 255px; background: url('img/background.jpeg') center/cover no-repeat, #0284C7; display: flex; align-items: center; justify-content: center; border-radius: 18px; }
+        .artwork-grid-box img { width: 195px; height: 195px; object-fit: contain; }
+        .btn-rotom { background-color: #FF5330; color: #FFFFFF; border: none; border-radius: 12px; font-weight: 700; }
+        .btn-rotom:hover { background-color: #E03A1B; color: #FFFFFF; }
+    </style>
+    <title>Ficha Pokemon - PokeAPI Dex</title>
+</head>
+<body>
+    <header>
+        <nav class="rotom-navbar d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex align-items-center gap-3">
+                <a href="index.html" class="brand-logo-link">
+                    <img src="img/logo.png" alt="PokeAPI" class="navbar-logo-img">
+                </a>
+                <span id="roleBadge" class="badge rounded-pill"></span>
+            </div>
+
+            <form id="searchForm" class="d-flex gap-2 flex-grow-1 mx-md-4" style="max-width: 400px;">
+                <input type="text" id="searchInput" class="form-control form-control-sm rounded-3" placeholder="Buscar otro Pokemon por nombre o N...">
+                <button type="submit" class="btn btn-info btn-sm text-dark fw-bold rounded-3 px-3"><i class="bi bi-search"></i></button>
+            </form>
+
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" id="btnOpenAdminPanel" class="btn btn-warning btn-sm rounded-3 fw-bold d-none" data-bs-toggle="modal" data-bs-target="#adminControlModal">
+                    <i class="bi bi-sliders"></i> Panel Admin
+                </button>
+                <button type="button" id="btnOpenModPanel" class="btn btn-info btn-sm text-dark rounded-3 fw-bold d-none" data-bs-toggle="modal" data-bs-target="#modControlModal">
+                    <i class="bi bi-shield-check"></i> Moderacion
+                </button>
+                <span id="userGreeting" class="text-light small fw-semibold d-none d-xl-inline mx-1"></span>
+                <button type="button" id="btnLogout" class="btn btn-rotom btn-sm px-3 py-2">Cerrar sesion</button>
+                <button class="hamburger-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#rotomDrawer" aria-label="Menu">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <article class="container my-4" id="pokedexDetailSheet">
+        <div>
+            <div class="pokedex-nav-bar row g-0">
+                <div class="col-6 border-end border-secondary">
+                    <button id="btnPrev" class="pokedex-nav-btn">
+                        <i class="bi bi-chevron-left"></i> <span id="prevLabel">Anterior</span>
+                    </button>
+                </div>
+                <div class="col-6">
+                    <button id="btnNext" class="pokedex-nav-btn">
+                        <span id="nextLabel">Siguiente</span> <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="pokedex-sheet p-3 p-md-4">
+                <div class="text-center mb-4">
+                    <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap">
+                        <h2 class="fw-bold mb-0 h1">
+                            <span id="pokeName">Cargando...</span> 
+                            <span id="pokeNumber" class="text-muted mono-num fs-3"></span>
+                        </h2>
+                        <button id="btnFavorite" class="btn btn-outline-warning text-dark rounded-pill fw-semibold px-3">
+                            <i class="bi bi-star"></i> Favorito
+                        </button>
+                    </div>
+
+                    <div class="mx-auto mt-3" style="max-width: 300px;">
+                        <select id="formSelector" class="form-select bg-dark text-white rounded-3 fw-semibold"></select>
+                    </div>
+
+                    <div id="adminControls" class="mt-3 d-none">
+                        <div class="d-inline-flex gap-2">
+                            <button class="btn btn-warning btn-sm rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#editPokemonModal">
+                                <i class="bi bi-pencil-square me-1"></i> Editar Ficha
+                            </button>
+                            <button id="btnResetOverride" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Original
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="artwork-grid-box mb-4">
+                            <span id="customBadge" class="badge bg-warning text-dark rounded-pill position-absolute top-0 start-0 m-3 d-none">
+                                Editado / Custom
+                            </span>
+                            <img id="pokeImage" src="" alt="Pokemon Artwork" class="img-fluid">
+                        </div>
+
+                        <div class="stats-panel">
+                            <h6 class="fw-bold mb-3 text-uppercase small text-secondary">Puntos de base</h6>
+                            <div class="row g-2 text-center" id="baseStatsContainer"></div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <p id="pokeDescription" class="fs-6 text-secondary mb-4 lh-base">Cargando descripcion...</p>
+
+                        <div class="bio-blue-card mb-4">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="bio-label">Altura</div>
+                                    <div class="bio-value" id="pokeHeight"></div>
+
+                                    <div class="bio-label">Peso</div>
+                                    <div class="bio-value" id="pokeWeight"></div>
+
+                                    <div class="bio-label">Genero</div>
+                                    <div class="bio-value mb-0" id="pokeGender"></div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="bio-label">Categoria</div>
+                                    <div class="bio-value" id="pokeCategory"></div>
+
+                                    <div class="bio-label">Habilidad</div>
+                                    <div class="bio-value mb-0" id="pokeAbilities"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-uppercase small text-secondary mb-2">Tipo</h6>
+                            <div id="pokeTypes" class="d-flex gap-2 flex-wrap"></div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-uppercase small text-secondary mb-2">Debilidad</h6>
+                            <div id="pokeWeaknesses" class="d-flex gap-2 flex-wrap"></div>
+                        </div>
+
+                        <!-- Bitacora de Campo (Investigador / Admin / Moderador limpia) -->
+                        <div class="card rounded-4 border-0 shadow-sm bg-light">
+                            <div class="card-header bg-dark text-white rounded-top-4 d-flex justify-content-between align-items-center py-2 px-3">
+                                <span class="fw-semibold small"><i class="bi bi-journal-medical text-info me-1"></i> Bitacora de Campo</span>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span id="noteAuthorTag" class="badge rounded-pill bg-info text-dark">Sin registros</span>
+                                    <button type="button" id="btnModClearNote" class="btn btn-outline-danger btn-sm py-0 px-2 d-none" title="Limpiar bitacora por moderacion">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div id="noteReadOnly">
+                                    <p class="mb-1 small"><strong>Habitat:</strong> <span id="viewNoteHabitat" class="text-secondary">No documentado</span></p>
+                                    <p class="mb-0 small"><strong>Observaciones:</strong> <span id="viewNoteObs" class="text-secondary">Aun no hay notas de campo.</span></p>
+                                </div>
+                                <form id="researchForm" class="d-none">
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold mb-1">Habitat observado</label>
+                                        <input type="text" id="inputNoteHabitat" class="form-control form-control-sm rounded-3" placeholder="Ej. Montanas escarpadas">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label small fw-semibold mb-1">Notas de comportamiento y metricas</label>
+                                        <textarea id="inputNoteObs" class="form-control form-control-sm rounded-3" rows="2"></textarea>
+                                    </div>
+                                    <div id="researchExtraMetrics" class="small text-primary fw-semibold mb-2"></div>
+                                    <button type="submit" class="btn btn-info btn-sm rounded-pill px-3 fw-bold text-dark">
+                                        <i class="bi bi-save me-1"></i> Guardar Bitacora
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cadena de Evoluciones -->
+                <div class="evolution-card mt-4">
+                    <h6 class="fw-bold text-uppercase small text-info mb-3">Cadena de Evoluciones</h6>
+                    <div id="evolutionContainer" class="d-flex flex-wrap justify-content-center align-items-center gap-3 gap-md-5"></div>
+                </div>
+
+                <!-- Seccion de Comentarios por Pokemon -->
+                <div class="card rounded-4 border shadow-sm mt-4">
+                    <div class="card-header bg-white border-bottom d-flex justify-content-between align-items-center py-3 px-4 rounded-top-4">
+                        <h5 class="fw-bold mb-0 fs-6">
+                            <i class="bi bi-chat-dots-fill text-primary me-2"></i>Comentarios de la Comunidad
+                        </h5>
+                        <span id="commentsCountBadge" class="badge rounded-pill bg-dark">0 comentarios</span>
+                    </div>
+                    <div class="card-body p-3 p-md-4">
+                        <form id="commentForm" class="mb-4">
+                            <div class="input-group">
+                                <input type="text" id="commentInput" class="form-control rounded-start-3" placeholder="Escribe un comentario, estrategia o dato sobre este Pokemon..." required>
+                                <button type="submit" class="btn btn-rotom px-4 rounded-end-3">
+                                    <i class="bi bi-send-fill me-1"></i> Comentar
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="commentsListContainer" class="d-flex flex-column gap-2"></div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <a href="index.html" class="btn btn-rotom px-4 py-2">
+                        <i class="bi bi-grid-3x3-gap-fill me-1"></i> Volver al Explorador
+                    </a>
+                </div>
+            </div>
+        </div>
+    </article>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="rotomDrawer">
+        <div class="offcanvas-header" style="background-color: #0F172A; color: white; border-bottom: 3px solid #FF5330;">
+            <h5 class="offcanvas-title fw-bold"><i class="bi bi-cpu text-info me-2"></i>Panel Rotom-Dex</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body">
+            <div id="drawerRoleFeatures" class="alert alert-light border small mb-3"></div>
+
+            <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-star-fill text-warning me-1"></i> Mis Favoritos</h6>
+            <ul id="favoritesList" class="list-group list-group-flush mb-4"></ul>
+
+            <h6 class="fw-bold border-bottom pb-2"><i class="bi bi-database-add text-success me-1"></i> Pokemon Personalizados</h6>
+            <ul id="customPokemonList" class="list-group list-group-flush mb-4"></ul>
+        </div>
+    </div>
+
+    <!-- Modal Editar Ficha (Admin) -->
+    <div class="modal fade" id="editPokemonModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title fw-bold">Editar Ficha Pokemon</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="editPokemonForm">
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small">Nombre</label>
+                            <input type="text" id="editName" class="form-control" required>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">Altura (m)</label>
+                                <input type="number" step="0.1" id="editHeight" class="form-control" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold small">Peso (kg)</label>
+                                <input type="number" step="0.1" id="editWeight" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-semibold small">Descripcion Pokedex</label>
+                            <textarea id="editDescription" class="form-control" rows="3" required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Panel de Control General (Admin) -->
+    <div class="modal fade" id="adminControlModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-sliders text-warning me-2"></i>Panel de Control del Administrador</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="adminPanelAlert" class="d-none"></div>
+
+                    <ul class="nav nav-pills mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold" data-bs-toggle="pill" data-bs-target="#tabUsersRoles" type="button">
+                                <i class="bi bi-people-fill me-1"></i> Usuarios y Roles
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tabSystemGlobal" type="button">
+                                <i class="bi bi-hdd-stack-fill me-1"></i> Gestion General
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tabUsersRoles">
+                            <form id="adminCreateUserForm" class="row g-2 bg-light p-3 rounded-3 border mb-3">
+                                <div class="col-12"><span class="small fw-bold text-secondary">Crear nuevo usuario con rol especifico:</span></div>
+                                <div class="col-sm-4">
+                                    <input type="text" id="adminNewUsername" class="form-control form-control-sm" placeholder="Usuario" required>
+                                </div>
+                                <div class="col-sm-3">
+                                    <input type="text" id="adminNewPassword" class="form-control form-control-sm" placeholder="Contrasena" required>
+                                </div>
+                                <div class="col-sm-3">
+                                    <select id="adminNewRole" class="form-select form-select-sm">
+                                        <option value="usuario">Usuario</option>
+                                        <option value="investigador">Investigador</option>
+                                        <option value="moderador">Moderador</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                </div>
+                                <div class="col-sm-2">
+                                    <button type="submit" class="btn btn-dark btn-sm w-100 fw-bold">Agregar</button>
+                                </div>
+                            </form>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle small">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Usuario</th>
+                                            <th>Rol Actual</th>
+                                            <th>Cambiar Rol Individual</th>
+                                            <th class="text-end">Accion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adminUsersTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tabSystemGlobal">
+                            <div class="row g-2 text-center mb-4" id="adminSystemStats"></div>
+                            <div class="d-grid gap-2">
+                                <button type="button" id="btnAdminClearComments" class="btn btn-outline-danger fw-semibold text-start">
+                                    <i class="bi bi-chat-square-x me-2"></i> Eliminar todos los comentarios de la comunidad
+                                </button>
+                                <button type="button" id="btnAdminClearOverrides" class="btn btn-outline-warning text-dark fw-semibold text-start">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i> Restaurar todas las fichas de Pokemon editadas
+                                </button>
+                                <button type="button" id="btnAdminClearCustomPoke" class="btn btn-outline-secondary fw-semibold text-start">
+                                    <i class="bi bi-trash3 me-2"></i> Eliminar todos los Pokemon personalizados
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Panel de Moderacion (Moderador y Admin) -->
+    <div class="modal fade" id="modControlModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content rounded-4 border-0 shadow-lg">
+                <div class="modal-header bg-info text-dark">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i>Centro de Moderacion de Comunidad</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Supervisa, destaca o elimina comentarios publicados en cualquier Pokemon.</p>
+                    <div id="globalModCommentsList" class="d-flex flex-column gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/pokedex.js"></script>
+</body>
+</html>
